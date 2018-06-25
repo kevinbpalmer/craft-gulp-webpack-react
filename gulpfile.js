@@ -32,13 +32,17 @@ var gulp = require('gulp'),
 					js: ['src/templates/**/*.js', '!src/templates/**/*-reactcomponent/*.js'],
 					styles: ['src/templates/**/*.sass', '!src/templates/**/*-reactcomponent/*.sass'],
 					images: 'src/images/**/*.{png,gif,jpg,svg}',
-					reactComponents: ['src/templates/*-reactcomponent/index.{js,jsx}', '!src/templates/**/*-reactcomponent/*']
+					reactComponents: ['src/templates/*-reactcomponent/index.{js,jsx}', '!src/templates/**/*-reactcomponent/*'],
+          templates: 'src/templates/**/*',
+          htmlRootFiles: ['src/**/*', 'src/**/.*', '!src/templates/**/*-reactcomponent']
 				},
 				output: {
 					js: 'html/assets/js',
 					styles: 'html/assets/styles',
 					images: 'html/assets/images',
-					reactComponents: 'html/assets/bundles'
+					reactComponents: 'html/assets/bundles',
+          templates: 'templates',
+          htmlRootFiles: 'html'
 				},
 			}
 		}
@@ -70,7 +74,7 @@ var gulp = require('gulp'),
 				.pipe(notify({
 					onLast: true,
 					message: () => `Total minified scripts size: ${s.prettySize}`
-				}))
+				}));
 		});
 
 		gulp.task('styles', () => {
@@ -100,7 +104,7 @@ var gulp = require('gulp'),
 				.pipe(notify({
 					onLast: true,
 					message: () => `Total minified css size: ${s.prettySize}`
-				}))
+				}));
 		});
 
 		gulp.task('images', () => {
@@ -109,7 +113,7 @@ var gulp = require('gulp'),
 			return gulp.src(config.paths.input.images)
 				.pipe(plumber())
 				.pipe(cached('images'))
-				.pipe(gulp.dest(config.paths.output.images))
+				.pipe(gulp.dest(config.paths.output.images));
 		});
 
 		gulp.task('images:build', () => {
@@ -128,21 +132,35 @@ var gulp = require('gulp'),
 				.pipe(notify({
 					onLast: true,
 					message: () => `Total minified images size: ${s.prettySize}`
-				}))
+				}));
 		});
 
 		gulp.task('react-components', () => {
 			browserSync.reload
 
 			return gulp.src(config.paths.input.reactComponents)
+        .pipe(cached('react-components'))
 				.pipe(gulpWebpack(require('./webpack.config.js'), webpack))
-				.pipe(gulp.dest(config.paths.output.reactComponents))
+				.pipe(gulp.dest(config.paths.output.reactComponents));
 		});
+
+    gulp.task('templates', () => {
+      return gulp.src(config.paths.input.templates)
+        .pipe(cached('templates'))
+        .pipe(gulp.dest(config.paths.output.templates));
+    });
+
+    gulp.task('html-root-files', () => {
+      return gulp.src(config.paths.input.htmlRootFiles)
+        .pipe(gulp.dest(config.paths.output.htmlRootFiles));
+    });
 
 		gulp.task('build', () => {
 			gulp.start('scripts');
 			gulp.start('styles');
-			gulp.start('images:build');
+      gulp.start('images:build');
+      gulp.start('templates');
+			gulp.start('html-root-files');
 		});
 
 		// watch task
@@ -157,6 +175,12 @@ var gulp = require('gulp'),
 
 			// watch each individual image file that is located in the src/images folder
 			gulp.watch(config.paths.input.images, ['images']);
+
+      // watch all template files and move them to the root templates folder
+      gulp.watch(config.paths.input.templates, ['templates']);
+
+      // watch all files in the root of 'src/' folder and move the files to the 'html' folder
+      gulp.watch(config.paths.input.htmlRootFiles, ['html-root-files']);
 
 			// reload browsers when any of our react components updates its bundle via Webpack
 			//gulp.watch(config.paths.reactComponents).on('change', browserSync.reload);

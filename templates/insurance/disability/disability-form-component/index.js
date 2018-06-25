@@ -1,1 +1,1 @@
-console.log('disability!!');
+console.log('disability sucks yo');
